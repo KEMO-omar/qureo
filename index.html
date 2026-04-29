@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kero Management Pro</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary: #f89d13;
+            --secondary: #039be5;
+            --bg: #0b111b;
+            --card-bg: #161f2e;
+            --text: #ffffff;
+            --accent: #22c55e;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        /* انيميشن الدخول */
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: slideUp 0.8s ease;
+        }
+
+        .header h1 { color: var(--primary); font-size: 2.5rem; margin-bottom: 10px; }
+
+        /* شبكة الطلاب */
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .student-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            cursor: pointer;
+            border: 1px solid #2d3748;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: slideUp 0.5s ease backwards;
+            position: relative;
+        }
+
+        .student-card:hover {
+            transform: scale(1.05);
+            border-color: var(--primary);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .student-card h3 { margin: 0; color: var(--primary); font-size: 1.5rem; }
+        .student-card p { margin: 5px 0; color: #a0aec0; }
+
+        /* شريط التقدم */
+        .progress-container {
+            background: #2d3748;
+            height: 10px;
+            border-radius: 10px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--secondary), var(--primary));
+            transition: width 1s ease-in-out;
+            width: 0%;
+        }
+
+        /* زر الإضافة */
+        .fab {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            width: 65px;
+            height: 65px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 10px 20px rgba(248, 157, 19, 0.3);
+            cursor: pointer;
+            z-index: 100;
+            transition: 0.3s;
+        }
+
+        .fab:hover { transform: rotate(90deg) scale(1.1); }
+
+        /* لوحة التفاصيل الجانبية */
+        .side-panel {
+            position: fixed;
+            top: 0; right: -100%;
+            width: 400px; height: 100%;
+            background: #1a202c;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+            z-index: 1001;
+            transition: 0.5s cubic-bezier(0.77, 0, 0.175, 1);
+            padding: 40px 20px;
+            box-sizing: border-box;
+        }
+
+        .side-panel.active { right: 0; }
+
+        .overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none; z-index: 1000;
+        }
+
+        .btn-update {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1.1rem;
+            margin-top: 20px;
+        }
+
+        .price-badge {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--accent);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>إدارة منصة كيرو <i class="fas fa-rocket"></i></h1>
+        <p>نظام التتبع الذكي والربط السحابي</p>
+    </div>
+
+    <div class="container" id="studentsList">
+        </div>
+
+    <div class="fab" onclick="showAddDialog()">
+        <i class="fas fa-plus"></i>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="closePanel()"></div>
+    <div class="side-panel" id="sidePanel">
+        <h2 id="panelName" style="color:var(--primary)"></h2>
+        <hr style="border-color:#2d3748">
+        <p><i class="fas fa-link"></i> <a href="https://kero-platform.com" id="platformLink" target="_blank" style="color:var(--secondary)">فتح المنصة</a></p>
+        <p><i class="fas fa-key"></i> الكود: <span id="panelCode"></span></p>
+        <p><i class="fas fa-lock"></i> السر: <span id="panelPass"></span></p>
+        <p><i class="fas fa-graduation-cap"></i> بدأ من فصل: <span id="panelStart"></span></p>
+        <p><i class="fas fa-check-double"></i> واصل لفصل: <span id="panelCurrent" style="font-weight:bold; color:var(--primary)"></span></p>
+        
+        <div class="progress-container">
+            <div id="panelProgress" class="progress-bar"></div>
+        </div>
+        <p id="progressText" style="text-align:center; font-size:0.9rem"></p>
+
+        <div style="margin-top: 30px; border-top: 1px solid #2d3748; padding-top:20px">
+            <h3>الحساب المادي:</h3>
+            <span class="price-badge" id="panelPrice">0 ج.م</span>
+        </div>
+
+        <button class="btn-update" onclick="updateLevel()">تحديث الفصل الحالي <i class="fas fa-edit"></i></button>
+        <button onclick="deleteStudent()" style="background:transparent; color:#ef4444; border:none; margin-top:20px; cursor:pointer; width:100%">حذف الطالب</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+        import { getDatabase, ref, push, onValue, set, remove } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDW1eNmFR7DocXCIJpLHAAWmR5p475xdSQ",
+            authDomain: "saif-736ac.firebaseapp.com",
+            databaseURL: "https://saif-736ac-default-rtdb.firebaseio.com",
+            projectId: "saif-736ac",
+            storageBucket: "saif-736ac.firebasestorage.app",
+            messagingSenderId: "1082464303719",
+            appId: "1:1082464303719:web:7f6cab5071a040564f72c2"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const studentsRef = ref(db, 'students');
+
+        let currentActiveId = null;
+
+        // وظيفة إضافة طالب جديد
+        window.showAddDialog = async () => {
+            const { value: formValues } = await Swal.fire({
+                title: 'إضافة طالب جديد',
+                background: '#161f2e',
+                color: '#fff',
+                html:
+                    '<input id="swal-name" class="swal2-input" placeholder="الاسم">' +
+                    '<input id="swal-code" class="swal2-input" placeholder="الكود">' +
+                    '<input id="swal-pass" class="swal2-input" placeholder="كلمة السر">' +
+                    '<input id="swal-start" type="number" class="swal2-input" placeholder="الفصل اللي بدأ فيه (1-30)">',
+                focusConfirm: false,
+                preConfirm: () => {
+                    return {
+                        name: document.getElementById('swal-name').value,
+                        code: document.getElementById('swal-code').value,
+                        pass: document.getElementById('swal-pass').value,
+                        start: parseInt(document.getElementById('swal-start').value)
+                    }
+                }
+            });
+
+            if (formValues && formValues.name && !isNaN(formValues.start)) {
+                push(studentsRef, {
+                    ...formValues,
+                    current: formValues.start // في البداية الحالي = البداية
+                });
+            }
+        }
+
+        // قراءة البيانات في الوقت الفعلي
+        onValue(studentsRef, (snapshot) => {
+            const data = snapshot.val();
+            const list = document.getElementById('studentsList');
+            list.innerHTML = '';
+            
+            for (let id in data) {
+                const student = data[id];
+                const progress = ((student.current / 30) * 100).toFixed(0);
+                
+                const card = document.createElement('div');
+                card.className = 'student-card';
+                card.onclick = () => openPanel(id, student);
+                card.innerHTML = `
+                    <h3>${student.name}</h3>
+                    <p><i class="fas fa-fingerprint"></i> كود: ${student.code}</p>
+                    <div class="progress-container">
+                        <div class="progress-bar" style="width: ${progress}%"></div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:0.8rem">
+                        <span>فصل: ${student.current} / 30</span>
+                        <span>${progress}%</span>
+                    </div>
+                `;
+                list.appendChild(card);
+            }
+        });
+
+        // فتح لوحة التحكم
+        window.openPanel = (id, student) => {
+            currentActiveId = id;
+            document.getElementById('panelName').innerText = student.name;
+            document.getElementById('panelCode').innerText = student.code;
+            document.getElementById('panelPass').innerText = student.pass;
+            document.getElementById('panelStart').innerText = student.start;
+            document.getElementById('panelCurrent').innerText = student.current;
+            
+            const solved = student.current - student.start;
+            const price = (solved > 0 ? solved : 0) * 2;
+            document.getElementById('panelPrice').innerText = price + " جنيهاً";
+            
+            const progress = ((student.current / 30) * 100).toFixed(0);
+            document.getElementById('panelProgress').style.width = progress + '%';
+            document.getElementById('progressText').innerText = `باقي له ${30 - student.current} فصل على النهاية`;
+
+            document.getElementById('sidePanel').classList.add('active');
+            document.getElementById('overlay').style.display = 'block';
+        };
+
+        window.closePanel = () => {
+            document.getElementById('sidePanel').classList.remove('active');
+            document.getElementById('overlay').style.display = 'none';
+        };
+
+        // تحديث الفصل
+        window.updateLevel = async () => {
+            const { value: level } = await Swal.fire({
+                title: 'تحديث التقدم',
+                input: 'number',
+                inputLabel: 'وصلت للفصل كام دلوقتي؟',
+                inputAttributes: { min: 1, max: 30 },
+                showCancelButton: true
+            });
+
+            if (level) {
+                set(ref(db, `students/${currentActiveId}/current`), parseInt(level));
+                closePanel();
+            }
+        };
+
+        // حذف طالب
+        window.deleteStudent = () => {
+            if(confirm('هل أنت متأكد من حذف هذا الطالب نهائياً؟')) {
+                remove(ref(db, `students/${currentActiveId}`));
+                closePanel();
+            }
+        };
+    </script>
+</body>
+</html>
